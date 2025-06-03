@@ -9417,24 +9417,33 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       // `ng-bind-html` directive.
 
       var result = '';
+      console.log("------------------------------------------------------------------------")
+      console.log('value', value);
 
       // first check if there are spaces because it's not the same pattern
       var trimmedSrcset = trim(value);
+      console.log('trimmedSrcset', trimmedSrcset);
       //                (   999x   ,|   999w   ,|   ,|,   )
       var srcPattern = /(\s+\d+x\s*,|\s+\d+w\s*,|\s+,|,\s+)/;
       var pattern = /\s/.test(trimmedSrcset) ? srcPattern : /(,)/;
+      console.log('pattern', pattern);
 
       // split srcset into tuple of uri and descriptor except for the last item
       var rawUris = trimmedSrcset.split(pattern);
+      console.log('rawUris', rawUris);
 
       // for each tuples
       var nbrUrisWith2parts = Math.floor(rawUris.length / 2);
+      console.log('nbrUrisWith2parts', nbrUrisWith2parts);
       for (var i = 0; i < nbrUrisWith2parts; i++) {
         var innerIdx = i * 2;
         // sanitize the uri
         result += $sce.getTrustedMediaUrl(trim(rawUris[innerIdx]));
+        console.log('result inside loop', result);
+        console.log('trim(rawUris[innerIdx + 1])', trim(rawUris[innerIdx + 1]));
         // add the descriptor
         result += ' ' + trim(rawUris[innerIdx + 1]);
+        console.log('final result inside loop', result);
       }
 
       console.log('before last tuple result', result);
@@ -9448,46 +9457,18 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       result += $sce.getTrustedMediaUrl(trim(lastTuple[0]));
       console.log('after last tuple result', result);
 
-      var potentialDescriptor = '';
-      var remainingItemsString = ''; // String that might contain more srcset items after lastTuple[0]'s part
-
-      if (lastTuple.length > 1) { // If there are more "words" in this last segment after the URI
-          potentialDescriptor = trim(lastTuple[1]); // The first word after the URI
-
-          if (/^\d+(\.\d+)?[wx]$/.test(potentialDescriptor)) {
-              // This first word is a VALID descriptor for lastTuple[0]'s URI
-              result += (' ' + potentialDescriptor);
-              // Any words after this valid descriptor in lastTuple constitute the next set of items
-              if (lastTuple.length > 2) {
-                  remainingItemsString = trim(lastTuple.slice(2).join(' '));
-              }
-          } else {
-              // This first word is NOT a valid descriptor for lastTuple[0]'s URI.
-              // This word itself, plus any subsequent words in lastTuple, form the next set of items.
-              remainingItemsString = trim(lastTuple.slice(1).join(' '));
-          }
+      // and add the last descriptor if any
+      if (lastTuple.length === 2) {
+        var descriptor = trim(lastTuple[1]);
+        // Only append if it's a valid descriptor (e.g., "100w", "2x").
+        // This prevents an unsanitized URL or junk data from being appended as a descriptor.
+        if (/^\d+(\.\d+)?[wx]$/.test(descriptor)) {
+          result += (' ' + descriptor);
+        }
       }
-      // If lastTuple.length was 1, only a URI was present, so potentialDescriptor and remainingItemsString are empty.
 
-      // If there's a remaining string that might contain more srcset items, process it.
-      if (remainingItemsString) {
-          var nextSetToSanitize = remainingItemsString;
-          var sanitizedNextSet = sanitizeSrcset(nextSetToSanitize, invokeType); // Recursive call
-
-          if (sanitizedNextSet) {
-              // Ensure a comma separator if result has content and sanitizedNextSet has content.
-              if (result && result.charAt(result.length - 1) !== ',' && sanitizedNextSet.charAt(0) !== ',') {
-                  result += ',';
-              } else if (result && result.charAt(result.length - 1) === ',' && sanitizedNextSet.charAt(0) === ',') {
-                  // Avoid double comma if result ends with comma and next set starts with one (e.g. nextSet was just ",").
-                  sanitizedNextSet = sanitizedNextSet.substring(1);
-              }
-              
-              if (sanitizedNextSet) { // Check again in case substring(1) made it empty
-                 result += sanitizedNextSet;
-              }
-          }
-      }
+      console.log('after last tuple result', result);
+      console.log("------------------------------------------------------------------------")
 
       return result;
     }
