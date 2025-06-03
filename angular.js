@@ -9299,12 +9299,7 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       for (var i = 0; i < nbrUrisWith2parts; i++) {
         var innerIdx = i * 2;
         // sanitize the uri
-        var currentUriToSanitize = trim(rawUris[innerIdx]);
-        if (currentUriToSanitize.substring(0, 19).toLowerCase() === 'data:image/svg+xml') {
-          result += 'unsafe:' + currentUriToSanitize;
-        } else {
-          result += $sce.getTrustedMediaUrl(currentUriToSanitize);
-        }
+        result += $sce.getTrustedMediaUrl(trim(rawUris[innerIdx]));
         // add the descriptor
         result += ' ' + trim(rawUris[innerIdx + 1]);
       }
@@ -9313,16 +9308,16 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       var lastTuple = trim(rawUris[i * 2]).split(/\s/);
 
       // sanitize the last uri
-      var lastUriToSanitize = trim(lastTuple[0]);
-      if (lastUriToSanitize.substring(0, 19).toLowerCase() === 'data:image/svg+xml') {
-        result += 'unsafe:' + lastUriToSanitize;
-      } else {
-        result += $sce.getTrustedMediaUrl(lastUriToSanitize);
-      }
+      result += $sce.getTrustedMediaUrl(trim(lastTuple[0]));
 
       // and add the last descriptor if any
       if (lastTuple.length === 2) {
-        result += (' ' + trim(lastTuple[1]));
+        var descriptor = trim(lastTuple[1]);
+        // Only append if it's a valid descriptor (e.g., "100w", "2x").
+        // This prevents an unsanitized URL or junk data from being appended as a descriptor.
+        if (/^\d+[wx]$/.test(descriptor)) {
+          result += (' ' + descriptor);
+        }
       }
       return result;
     }
