@@ -9417,86 +9417,58 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       // `ng-bind-html` directive.
 
       var result = '';
-      // console.log("------------------------------------------------------------------------")
-      // console.log('value', value);
+      console.log("------------------------------------------------------------------------")
+      console.log('value', value);
 
       // first check if there are spaces because it's not the same pattern
       var trimmedSrcset = trim(value);
-      // console.log('trimmedSrcset', trimmedSrcset);
+      console.log('trimmedSrcset', trimmedSrcset);
       //                (   999x   ,|   999w   ,|   ,|,   )
-      var srcPattern = /(\s+\d+x\s*,|\s+\d+w\s*,|\s+,|,\s+)/;
+      var srcPattern = /(\s+\d+(\.\d+)?[wx]\s*,|\s+,|,\s+)/;
       var pattern = /\s/.test(trimmedSrcset) ? srcPattern : /(,)/;
-      // console.log('pattern', pattern);
+      console.log('pattern', pattern);
 
       // split srcset into tuple of uri and descriptor except for the last item
       var rawUris = trimmedSrcset.split(pattern);
-      // console.log('rawUris', rawUris);
+      console.log('rawUris', rawUris);
 
       // for each tuples
       var nbrUrisWith2parts = Math.floor(rawUris.length / 2);
-      // console.log('nbrUrisWith2parts', nbrUrisWith2parts);
+      console.log('nbrUrisWith2parts', nbrUrisWith2parts);
       for (var i = 0; i < nbrUrisWith2parts; i++) {
         var innerIdx = i * 2;
         // sanitize the uri
         result += $sce.getTrustedMediaUrl(trim(rawUris[innerIdx]));
-        // console.log('result inside loop', result);
-        // console.log('trim(rawUris[innerIdx + 1])', trim(rawUris[innerIdx + 1]));
+        console.log('result inside loop', result);
+        console.log('trim(rawUris[innerIdx + 1])', trim(rawUris[innerIdx + 1]));
         // add the descriptor
         result += ' ' + trim(rawUris[innerIdx + 1]);
-        // console.log('final result inside loop', result);
+        console.log('final result inside loop', result);
       }
 
-      // console.log('before last tuple result', result);
+      console.log('before last tuple result', result);
 
       // split the last item into uri and descriptor
       var lastTuple = trim(rawUris[i * 2]).split(/\s/);
 
-      // console.log('lastTuple', lastTuple);
+      console.log('lastTuple', lastTuple);
 
       // sanitize the last uri
       result += $sce.getTrustedMediaUrl(trim(lastTuple[0]));
-      // console.log('after last tuple result', result);
+      console.log('after last tuple result', result);
 
       // and add the last descriptor if any
       if (lastTuple.length === 2) {
-        var potentialDescriptorOrNextSet = trim(lastTuple[1]);
-        if (/^\d+(\.\d+)?[wx]$/.test(potentialDescriptorOrNextSet)) {
-          // potentialDescriptorOrNextSet is a valid descriptor for lastTuple[0]
-          result += (' ' + potentialDescriptorOrNextSet);
-        } else {
-          // potentialDescriptorOrNextSet is NOT a valid descriptor for lastTuple[0].
-          // Attempt to sanitize it as if it's a new, separate srcset string.
-          var sanitizedNextSet = sanitizeSrcset(potentialDescriptorOrNextSet, invokeType);
-          if (sanitizedNextSet) {
-            // Append with a comma. Handle cases where sanitizedNextSet might also start with a comma
-            // from its own internal parsing if it contained multiple items.
-            if (result.charAt(result.length - 1) !== ',') {
-              result += ',';
-            }
-            if (sanitizedNextSet.charAt(0) === ',') {
-              sanitizedNextSet = sanitizedNextSet.substring(1);
-            }
-            if (sanitizedNextSet) { // Check if it became empty after stripping a comma
-                result += sanitizedNextSet;
-            }
-          }
-        }
-      } else if (lastTuple.length > 1) {
-        // This handles cases where lastTuple might be like ["uri", "desc", "more", "stuff"]
-        // (e.g., if original srcset was space-separated without commas recognized by srcPattern)
-        // For a minimal fix based on the user's specific log (where lastTuple.length is 2),
-        // we only add a valid descriptor if found at lastTuple[1].
-        // Further items in lastTuple (lastTuple.slice(2)) are currently ignored in this branch
-        // to keep the change minimal and avoid reintroducing complexity that broke tests.
-        var actualDescriptor = trim(lastTuple[1]);
-        if (/^\d+(\.\d+)?[wx]$/.test(actualDescriptor)) {
-          result += (' ' + actualDescriptor);
+        var descriptor = trim(lastTuple[1]);
+        // Only append if it's a valid descriptor (e.g., "100w", "2x").
+        // This prevents an unsanitized URL or junk data from being appended as a descriptor.
+        if (/^\d+(\.\d+)?[wx]$/.test(descriptor)) {
+          result += (' ' + descriptor);
         }
       }
-      // If lastTuple.length is 1, it was just a URI, no descriptor or further parts in this segment.
 
-      // console.log('after last tuple result', result);
-      // console.log("------------------------------------------------------------------------")
+      console.log('after last tuple result', result);
+      console.log("------------------------------------------------------------------------")
 
       return result;
     }
