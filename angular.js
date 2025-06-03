@@ -9424,7 +9424,7 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       var trimmedSrcset = trim(value);
       console.log('trimmedSrcset', trimmedSrcset);
       //                (   999x   ,|   999w   ,|   ,|,   )
-      var srcPattern = /(\s+\d+(\.\d+)?[wx]\s*,|\s+,|,\s+)/;
+      var srcPattern = /(\s+\d+x\s*,|\s+\d+w\s*,|\s+,|,\s+)/;
       var pattern = /\s/.test(trimmedSrcset) ? srcPattern : /(,)/;
       console.log('pattern', pattern);
 
@@ -9460,10 +9460,19 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       // and add the last descriptor if any
       if (lastTuple.length === 2) {
         var descriptor = trim(lastTuple[1]);
-        // Only append if it's a valid descriptor (e.g., "100w", "2x").
+        // Only append if it's a valid descriptor (e.g., "100w", "2x", "1.5x").
         // This prevents an unsanitized URL or junk data from being appended as a descriptor.
         if (/^\d+(\.\d+)?[wx]$/.test(descriptor)) {
           result += (' ' + descriptor);
+        } else if (descriptor.indexOf(',') !== -1) {
+          // If the invalid descriptor contains a comma, it might contain another valid srcset entry
+          var remainingParts = descriptor.split(',');
+          if (remainingParts.length > 1) {
+            var nextPart = trim(remainingParts[1]);
+            if (nextPart) {
+              result += ',' + sanitizeSrcset(nextPart, invokeType);
+            }
+          }
         }
       }
 
