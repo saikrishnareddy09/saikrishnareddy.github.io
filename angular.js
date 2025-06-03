@@ -9448,7 +9448,7 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
         var descriptor = trim(lastTuple[1]);
         // Only append if it's a valid descriptor (e.g., "100w", "2x").
         // This prevents an unsanitized URL or junk data from being appended as a descriptor.
-        if (/^\d+[wx]$/.test(descriptor)) {
+        if (/^\d+(\.\d+)?[wx]$/.test(descriptor)) {
           result += (' ' + descriptor);
         }
       }
