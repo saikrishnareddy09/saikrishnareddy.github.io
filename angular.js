@@ -9472,11 +9472,16 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
             if (nextPart) {
               // Check if the remaining part has a descriptor
               var nextPartPieces = nextPart.split(/\s/);
-              result += ', ' + $sce.getTrustedMediaUrl(trim(nextPartPieces[0]));
-              if (nextPartPieces.length === 2) {
-                var nextDescriptor = trim(nextPartPieces[1]);
-                if (/^\d+(\.\d+)?[wx]$/.test(nextDescriptor)) {
-                  result += ' ' + nextDescriptor;
+              var nextUrl = $sce.getTrustedMediaUrl(trim(nextPartPieces[0]));
+              // Only add the next part if it's from a trusted domain
+              if (!nextUrl.startsWith('unsafe:')) {
+                result += ', ' + nextUrl;
+                // If there's a descriptor, validate and add it
+                if (nextPartPieces.length === 2) {
+                  var nextDescriptor = trim(nextPartPieces[1]);
+                  if (/^\d+(\.\d+)?[wx]$/.test(nextDescriptor)) {
+                    result += ' ' + nextDescriptor;
+                  }
                 }
               }
             }
