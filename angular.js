@@ -9437,11 +9437,16 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
         result += ' ' + trim(rawUris[innerIdx + 1]);
       }
 
+      console.log('before last tuple result', result);
+
       // split the last item into uri and descriptor
       var lastTuple = trim(rawUris[i * 2]).split(/\s/);
 
+      console.log('lastTuple', lastTuple);
+
       // sanitize the last uri
       result += $sce.getTrustedMediaUrl(trim(lastTuple[0]));
+      console.log('after last tuple result', result);
 
       // and add the last descriptor if any
       if (lastTuple.length === 2) {
@@ -9452,6 +9457,9 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
           result += (' ' + descriptor);
         }
       }
+
+      console.log('after last tuple result', result);
+
       return result;
     }
 
