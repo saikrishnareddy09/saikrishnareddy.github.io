@@ -9470,7 +9470,15 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
           if (remainingParts.length > 1) {
             var nextPart = trim(remainingParts[1]);
             if (nextPart) {
-              result += ',' + sanitizeSrcset(nextPart, invokeType);
+              // Check if the remaining part has a descriptor
+              var nextPartPieces = nextPart.split(/\s/);
+              result += ',' + $sce.getTrustedMediaUrl(trim(nextPartPieces[0]));
+              if (nextPartPieces.length === 2) {
+                var nextDescriptor = trim(nextPartPieces[1]);
+                if (/^\d+(\.\d+)?[wx]$/.test(nextDescriptor)) {
+                  result += ' ' + nextDescriptor;
+                }
+              }
             }
           }
         }
