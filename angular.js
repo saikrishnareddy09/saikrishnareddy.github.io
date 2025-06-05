@@ -9408,15 +9408,21 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
         throw $compileMinErr('srcset', 'Can\'t pass trusted values to `{0}`: "{1}"', invokeType, value.toString());
       }
 
-      // Such values are a bit too complex to handle automatically inside $sce.
-      // Instead, we sanitize each of the URIs individually, which works, even dynamically.
-
-      // It's not possible to work around this using `$sce.trustAsMediaUrl`.
-      // If you want to programmatically set explicitly trusted unsafe URLs, you should use
-      // `$sce.trustAsHtml` on the whole `img` tag and inject it into the DOM using the
-      // `ng-bind-html` directive.
-
       var result = '';
+
+      // Special handling for data URIs
+      if (value.indexOf('data:') !== -1) {
+        var parts = value.split(',');
+        var firstPart = parts[0];
+        // If first part contains a valid descriptor, process normally
+        if (!/^\s*data:/.test(firstPart)) {
+          // Continue with normal processing
+          value = parts.join(',');
+        } else {
+          // Handle data URI - reconstruct the original value
+          return $sce.getTrustedMediaUrl(value);
+        }
+      }
 
       // first check if there are spaces because it's not the same pattern
       var trimmedSrcset = trim(value);
