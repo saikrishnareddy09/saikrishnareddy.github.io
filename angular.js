@@ -9407,62 +9407,70 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       if (!isString(value)) {
         throw $compileMinErr('srcset', 'Can\'t pass trusted values to `{0}`: "{1}"', invokeType, value.toString());
       }
-     
+
+      // Such values are a bit too complex to handle automatically inside $sce.
+      // Instead, we sanitize each of the URIs individually, which works, even dynamically.
+
+      // It's not possible to work around this using `$sce.trustAsMediaUrl`.
+      // If you want to programmatically set explicitly trusted unsafe URLs, you should use
+      // `$sce.trustAsHtml` on the whole `img` tag and inject it into the DOM using the
+      // `ng-bind-html` directive.
+
       var result = '';
+
+      // first check if there are spaces because it's not the same pattern
       var trimmedSrcset = trim(value);
-      // First, handle the complex splitting logic for data URLs
-      var entries = [];
-      var currentEntry = '';
-      var inDataUrl = false;
-      for (var i = 0; i < trimmedSrcset.length; i++) {
-        var char = trimmedSrcset[i];
-        // Check if we're starting a data URL
-        if (!inDataUrl && currentEntry.match(/^\s*data:/i)) {
-          inDataUrl = true;
-        }
-        if (char === ',' && !inDataUrl) {
-          // Regular comma separator
-          entries.push(currentEntry);
-          currentEntry = '';
-          // Skip any whitespace after comma
-          while (i + 1 < trimmedSrcset.length && trimmedSrcset[i + 1] === ' ') {
-            i++;
-          }
-        } else {
-          currentEntry += char;
-          // Check if we're exiting a data URL
-          if (inDataUrl && i + 1 < trimmedSrcset.length) {
-            // Look ahead to see if next is a comma followed by a URL
-            if (trimmedSrcset[i + 1] === ',' && i + 2 < trimmedSrcset.length) {
-              var lookAhead = trimmedSrcset.substring(i + 2).trim();
-              if (lookAhead.match(/^(https?:\/\/|\/\/|data:|\/)/i)) {
-                inDataUrl = false;
+      //                (   999x   ,|   999w   ,|   ,|,   )
+      var srcPattern = /(\s+\d+x\s*,|\s+\d+w\s*,|\s+,|,\s+)/;
+      var pattern = /\s/.test(trimmedSrcset) ? srcPattern : /(,)/;
+
+      // split srcset into tuple of uri and descriptor except for the last item
+      var rawUris = trimmedSrcset.split(pattern);
+
+      // for each tuples
+      var nbrUrisWith2parts = Math.floor(rawUris.length / 2);
+      for (var i = 0; i < nbrUrisWith2parts; i++) {
+        var innerIdx = i * 2;
+        // sanitize the uri
+        result += $sce.getTrustedMediaUrl(trim(rawUris[innerIdx]));
+        // add the descriptor
+        result += ' ' + trim(rawUris[innerIdx + 1]);
+      }
+
+      // split the last item into uri and descriptor
+      var lastTuple = trim(rawUris[i * 2]).split(/\s/);
+
+      // sanitize the last uri
+      result += $sce.getTrustedMediaUrl(trim(lastTuple[0]));
+
+      // and add the last descriptor if any
+      if (lastTuple.length === 2) {
+        var descriptor = trim(lastTuple[1]);
+        // Only append if it's a valid descriptor (e.g., "100w", "2x", "1.5x").
+        // This prevents an unsanitized URL or junk data from being appended as a descriptor.
+        if (/^\d+(\.\d+)?[wx]$/.test(descriptor)) {
+          result += (' ' + descriptor);
+        } else if (descriptor.indexOf(',') !== -1) {
+          // If the invalid descriptor contains a comma, it might contain another valid srcset entry
+          var remainingParts = descriptor.split(',');
+          if (remainingParts.length > 1) {
+            var nextPart = trim(remainingParts[1]);
+            if (nextPart) {
+              // Check if the remaining part has a descriptor
+              var nextPartPieces = nextPart.split(/\s+/);
+              result += ',' + $sce.getTrustedMediaUrl(trim(nextPartPieces[0]));
+              // If there's a descriptor, validate and add it
+              if (nextPartPieces.length === 2) {
+                var nextDescriptor = trim(nextPartPieces[1]);
+                if (/^\d+(\.\d+)?[wx]$/.test(nextDescriptor)) {
+                  result += ' ' + nextDescriptor;
+                }
               }
             }
           }
         }
       }
-      if (currentEntry) {
-        entries.push(currentEntry);
-      }
-      // Process each entry
-      for (var j = 0; j < entries.length; j++) {
-        var entry = trim(entries[j]);
-        if (!entry) continue;
-        // Add comma before entries (except first)
-        if (j > 0) {
-          result += ',';
-        }
-        // Check for valid descriptor pattern at the end
-        var validDescriptorMatch = entry.match(/^(.+?)(\s+\d+[wx])$/);
-        if (validDescriptorMatch) {
-          // Has a valid descriptor
-          result += $sce.getTrustedMediaUrl(trim(validDescriptorMatch[1])) + validDescriptorMatch[2];
-        } else {
-          // No valid descriptor - add space at the end
-          result += $sce.getTrustedMediaUrl(entry) + ' ';
-        }
-      }
+
       return result;
     }
    
