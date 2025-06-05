@@ -9427,18 +9427,12 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       // split srcset into tuple of uri and descriptor except for the last item
       var rawUris = trimmedSrcset.split(pattern);
 
-      function sanitizeUri(uri) {
-        uri = trim(uri);
-        // Don't sanitize data URLs as they are already safe
-        return uri.startsWith('data:image') ? uri : $sce.getTrustedMediaUrl(uri);
-      }
-
       // for each tuples
       var nbrUrisWith2parts = Math.floor(rawUris.length / 2);
       for (var i = 0; i < nbrUrisWith2parts; i++) {
         var innerIdx = i * 2;
         // sanitize the uri
-        result += sanitizeUri(rawUris[innerIdx]);
+        result += $sce.getTrustedMediaUrl(trim(rawUris[innerIdx]));
         // add the descriptor
         result += ' ' + trim(rawUris[innerIdx + 1]);
       }
@@ -9447,7 +9441,7 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       var lastTuple = trim(rawUris[i * 2]).split(/\s/);
 
       // sanitize the last uri
-      result += sanitizeUri(lastTuple[0]);
+      result += $sce.getTrustedMediaUrl(trim(lastTuple[0]));
 
       // and add the last descriptor if any
       if (lastTuple.length === 2) {
@@ -9464,7 +9458,7 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
             if (nextPart) {
               // Check if the remaining part has a descriptor
               var nextPartPieces = nextPart.split(/\s+/);
-              result += ',' + sanitizeUri(nextPartPieces[0]);
+              result += ',' + $sce.getTrustedMediaUrl(trim(nextPartPieces[0]));
               // If there's a descriptor, validate and add it
               if (nextPartPieces.length === 2) {
                 var nextDescriptor = trim(nextPartPieces[1]);
