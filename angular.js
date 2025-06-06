@@ -9411,11 +9411,11 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       var result = '';
 
       // Special handling for data URIs
-      if (value.indexOf('data:') !== -1) {
+      if (value.indexOf('data:image') !== -1) {
         var parts = value.split(',');
         var firstPart = parts[0];
         // If first part contains a valid descriptor, process normally
-        if (!/^\s*data:/.test(firstPart)) {
+        if (!/^\s*data:image/.test(firstPart)) {
           // Continue with normal processing
           value = parts.join(',');
         } else {
@@ -9476,10 +9476,8 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
           }
         }
       }
-
       return result;
     }
-   
 
 
     function Attributes(element, attributesToCopy) {
